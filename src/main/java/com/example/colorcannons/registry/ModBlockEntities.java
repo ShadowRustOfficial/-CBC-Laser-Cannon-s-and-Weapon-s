@@ -14,11 +14,11 @@ public class ModBlockEntities {
 
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<LaserAutocannonBreechBlockEntity>> LASER_BREECH =
             BLOCK_ENTITIES.register("laser_autocannon_breech", () -> BlockEntityType.Builder.of(
-                    (type, pos, state) -> new LaserAutocannonBreechBlockEntity(type, pos, state),
+                    (pos, state) -> new LaserAutocannonBreechBlockEntity(LASER_BREECH.get(), pos, state),
                     ModBlocks.LASER_AUTOCANNON_BREECH.get()).build(null));
 
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<FeFixedCannonMountBlockEntity>> FE_FIXED_CANNON_MOUNT =
             BLOCK_ENTITIES.register("fe_fixed_cannon_mount", () -> BlockEntityType.Builder.of(
-                    (type, pos, state) -> new FeFixedCannonMountBlockEntity(type, pos, state),
+                    (pos, state) -> new FeFixedCannonMountBlockEntity(FE_FIXED_CANNON_MOUNT.get(), pos, state),
                     ModBlocks.FE_FIXED_CANNON_MOUNT.get()).build(null));
 }
