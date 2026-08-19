@@ -9,9 +9,7 @@ import com.simibubi.create.foundation.blockEntity.behaviour.CenteredSideValueBox
 import com.simibubi.create.foundation.blockEntity.behaviour.ValueBoxTransform;
 import com.simibubi.create.foundation.blockEntity.behaviour.ValueSettingsBoard;
 import com.simibubi.create.foundation.blockEntity.behaviour.ValueSettingsFormatter;
-import com.simibubi.create.foundation.utility.CreateLang;
 import com.google.common.collect.ImmutableList;
-import net.createmod.catnip.math.VecHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -32,7 +30,7 @@ public class ColorModeScrollValueBehaviour extends ValveHandleBlockEntity.ValveH
 
     public ColorModeScrollValueBehaviour(SmartBlockEntity be) {
         super(be);
-        this.setLabel(CreateLang.builder("colorcannons").translate("fe_fixed_cannon_mount.color_mode").component());
+        this.setLabel(Component.translatable("colorcannons.fe_fixed_cannon_mount.color_mode"));
         this.slotPositioning = new ColorModeValueBox();
         this.between(0, 1);
         this.withFormatter(v -> ModColorModes.byOrdinalSafe(v).name());
@@ -81,6 +79,6 @@ public class ColorModeScrollValueBehaviour extends ValveHandleBlockEntity.ValveH
 
     private static class ColorModeValueBox extends CenteredSideValueBoxTransform {
         ColorModeValueBox() { super((state, dir) -> state.getValue(BlockStateProperties.FACING) != dir); }
-        @Override protected Vec3 getSouthLocation() { return VecHelper.voxelSpace(8.0, 8.0, 15.5); }
+        @Override protected Vec3 getSouthLocation() { return new Vec3(8.0 / 16.0, 8.0 / 16.0, 15.5 / 16.0); }
     }
 }
