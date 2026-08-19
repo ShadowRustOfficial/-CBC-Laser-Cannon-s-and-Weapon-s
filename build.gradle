@@ -1,0 +1,87 @@
+plugins {
+    id 'java-library'
+    id 'eclipse'
+    id 'idea'
+    id 'maven-publish'
+    id 'net.neoforged.gradle.userdev' version '7.1.38'
+}
+
+tasks.named('wrapper', Wrapper).configure {
+    distributionType = Wrapper.DistributionType.BIN
+}
+
+version = mod_version
+group = mod_group_id
+base { archivesName = mod_id }
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+sourceSets.main.resources {
+    srcDir 'src/generated/resources'
+    exclude("src/generated/**/.cache")
+}
+
+repositories {
+    maven {
+        name = 'Create'
+        url = 'https://maven.createmod.net'
+        content {
+            includeGroup 'com.simibubi.create'
+            includeGroupByRegex 'net\\.createmod.*'
+            includeGroup 'dev.engine-room'
+        }
+    }
+    maven {
+        name = 'Registrate'
+        url = 'https://maven.ithundxr.dev/snapshots'
+        content { includeGroup 'com.tterrag.registrate' }
+    }
+    maven {
+        name = 'CurseMaven'
+        url = 'https://www.cursemaven.com'
+        content { includeGroup 'curse.maven' }
+    }
+    mavenLocal()
+}
+
+runs {
+    configureEach {
+        systemProperty 'forge.logging.markers', 'REGISTRIES'
+        systemProperty 'forge.logging.console.level', 'debug'
+        workingDirectory project.layout.projectDirectory.dir('run').dir(name)
+        modSource sourceSets.main
+    }
+    client { systemProperty 'neoforge.enabledGameTestNamespaces', mod_id }
+    server {
+        systemProperty 'neoforge.enabledGameTestNamespaces', mod_id
+        argument '--nogui'
+    }
+    data {
+        arguments.addAll '--mod', mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
+    }
+}
+
+dependencies {
+    implementation "net.neoforged:neoforge:${neo_version}"
+    testImplementation platform("org.junit:junit-bom:5.11.4")
+    testImplementation "org.junit.jupiter:junit-jupiter"
+    compileOnly("com.simibubi.create:create-${minecraft_version}:${create_version}:slim")
+    compileOnly("net.createmod.ponder:ponder-neoforge:${ponder_version}+mc${minecraft_version}")
+    compileOnly("com.tterrag.registrate:Registrate:${registrate_version}")
+    compileOnly "curse.maven:ritchies-projectile-library-1279407:7587771"
+    runtimeOnly "curse.maven:ritchies-projectile-library-1279407:7587771"
+    compileOnly "curse.maven:create-big-cannons-646668:8303106"
+    runtimeOnly "curse.maven:create-big-cannons-646668:8303106"
+}
+
+tasks.withType(ProcessResources).configureEach {
+    var replaceProperties = [minecraft_version:minecraft_version,minecraft_version_range:minecraft_version_range,neo_version:neo_version,neo_version_range:neo_version_range,loader_version_range:loader_version_range,mod_id:mod_id,mod_name:mod_name,mod_license:mod_license,mod_version:mod_version,mod_authors:mod_authors,mod_description:mod_description,create_big_cannons_version:create_big_cannons_version]
+    inputs.properties replaceProperties
+    filesMatching(['META-INF/neoforge.mods.toml']) { expand replaceProperties + [project: project] }
+}
+
+tasks.withType(Test).configureEach { useJUnitPlatform() }
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
+tasks.named('jar', Jar).configure {
+    manifest { attributes(['Specification-Title':mod_id,'Specification-Vendor':mod_authors,'Specification-Version':'1','Implementation-Title':project.name,'Implementation-Version':project.jar.archiveVersion,'Implementation-Vendor':mod_authors]) }
+}
+idea { module { downloadSources = true; downloadJavadoc = true } }
