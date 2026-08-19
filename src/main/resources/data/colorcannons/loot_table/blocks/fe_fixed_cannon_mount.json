@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:block",
+  "pools": [{
+    "rolls": 1.0,
+    "bonus_rolls": 0.0,
+    "entries": [{"type": "minecraft:item", "name": "colorcannons:fe_fixed_cannon_mount"}]
+  }],
+  "random_sequence": "colorcannons:blocks/fe_fixed_cannon_mount"
+}
