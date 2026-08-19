@@ -31,14 +31,14 @@ repositories {
         }
     }
     maven {
-        name = 'Registrate'
-        url = 'https://maven.ithundxr.dev/snapshots'
-        content { includeGroup 'com.tterrag.registrate' }
-    }
-    maven {
         name = 'CurseMaven'
         url = 'https://www.cursemaven.com'
         content { includeGroup 'curse.maven' }
+    }
+    maven {
+        name = 'Registrate'
+        url = 'https://maven.ithundxr.dev/snapshots'
+        content { includeGroup 'com.tterrag.registrate' }
     }
     mavenLocal()
 }
@@ -62,8 +62,10 @@ runs {
 
 dependencies {
     implementation "net.neoforged:neoforge:${neo_version}"
-    implementation("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") { transitive = false }
-    implementation("net.createmod.ponder:Ponder-NeoForge-${minecraft_version}:${ponder_version}+mc${minecraft_version}")
+    implementation("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") {
+        transitive = false
+    }
+    implementation("net.createmod.ponder:ponder-neoforge:${ponder_version}+mc${minecraft_version}")
     implementation("com.tterrag.registrate:Registrate:${registrate_version}")
     compileOnly("net.createmod.catnip:Catnip-NeoForge-${minecraft_version}:${catnip_version}")
     compileOnly("dev.engine-room.flywheel:flywheel-neoforge-api-${minecraft_version}:${flywheel_version}")
