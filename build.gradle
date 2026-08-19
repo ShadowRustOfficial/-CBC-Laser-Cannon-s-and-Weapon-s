@@ -27,44 +27,25 @@ repositories {
         content {
             includeGroup 'com.simibubi.create'
             includeGroupByRegex 'net\\.createmod.*'
-            includeGroup 'dev.engine-room'
+            includeGroupByRegex 'dev\\.engine-room.*'
         }
-    }
-    maven {
-        name = 'CurseMaven'
-        url = 'https://www.cursemaven.com'
-        content { includeGroup 'curse.maven' }
     }
     maven {
         name = 'Registrate'
         url = 'https://maven.ithundxr.dev/snapshots'
         content { includeGroup 'com.tterrag.registrate' }
     }
+    maven {
+        name = 'CurseMaven'
+        url = 'https://www.cursemaven.com'
+        content { includeGroup 'curse.maven' }
+    }
     mavenLocal()
-}
-
-runs {
-    configureEach {
-        systemProperty 'forge.logging.markers', 'REGISTRIES'
-        systemProperty 'forge.logging.console.level', 'debug'
-        workingDirectory project.layout.projectDirectory.dir('run').dir(name)
-        modSource sourceSets.main
-    }
-    client { systemProperty 'neoforge.enabledGameTestNamespaces', mod_id }
-    server {
-        systemProperty 'neoforge.enabledGameTestNamespaces', mod_id
-        argument '--nogui'
-    }
-    data {
-        arguments.addAll '--mod', mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
-    }
 }
 
 dependencies {
     implementation "net.neoforged:neoforge:${neo_version}"
-    implementation("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") {
-        transitive = false
-    }
+    implementation("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") { transitive = false }
     implementation("net.createmod.ponder:ponder-neoforge:${ponder_version}+mc${minecraft_version}")
     implementation("com.tterrag.registrate:Registrate:${registrate_version}")
     compileOnly("net.createmod.catnip:Catnip-NeoForge-${minecraft_version}:${catnip_version}")
