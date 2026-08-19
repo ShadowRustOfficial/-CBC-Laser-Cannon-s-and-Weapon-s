@@ -1,0 +1,7 @@
+{
+  "fire_autocannon": {
+    "replace": true,
+    "sounds": [{"name": "createbigcannons:fire_autocannon", "stream": false}],
+    "subtitle": "createbigcannons.subtitle.fire_autocannon"
+  }
+}
