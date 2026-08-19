@@ -1,1 +1,0 @@
-The Gradle wrapper JAR is intentionally omitted from this text-only API transfer. Use IntelliJ Gradle integration or restore gradle-wrapper.jar from the supplied complete project ZIP.
