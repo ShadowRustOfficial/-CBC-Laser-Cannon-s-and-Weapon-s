@@ -1,1 +1,0 @@
-Tracer texture binary is preserved in the completed local ZIP; this repository branch currently cannot ingest local binary files through the connected GitHub file API.
