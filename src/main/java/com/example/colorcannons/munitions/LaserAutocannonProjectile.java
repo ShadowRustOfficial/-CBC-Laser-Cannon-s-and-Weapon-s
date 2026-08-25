@@ -1,7 +1,9 @@
 package com.example.colorcannons.munitions;
 
 import com.example.colorcannons.config.ColorCannonsConfig;
+import com.example.colorcannons.registry.ModSounds;
 import net.minecraft.core.BlockPos;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.Level;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -15,14 +17,14 @@ import rbasamoyai.createbigcannons.munitions.config.components.BallisticProperti
 import rbasamoyai.createbigcannons.munitions.config.components.EntityDamagePropertiesComponent;
 
 /**
- * The actual projectile used by the laser rounds. CBC still owns the complete
- * projectile tick/penetration pipeline, but the laser has explicit properties
- * so its damage cannot silently fall back to zero if a custom entity-property
- * JSON is not discovered by the handler.
+ * Authoritative laser projectile. CBC remains responsible for the projectile
+ * collision, penetration and damage pipeline; this class adds the laser's
+ * server-side impact explosion and impact audio exactly once.
  */
 public class LaserAutocannonProjectile extends APAutocannonProjectile {
 
     private boolean impactExplosionQueued;
+    private boolean impactSoundPlayed;
     /** World-space point where CBC spawned the projectile (the cannon muzzle). */
     private Vec3 muzzleOrigin;
 
@@ -88,11 +90,18 @@ public class LaserAutocannonProjectile extends APAutocannonProjectile {
     @Override
     protected boolean onImpact(HitResult hitResult, AbstractCannonProjectile.ImpactResult result,
             ProjectileContext context) {
+        if (!level().isClientSide && !impactSoundPlayed) {
+            impactSoundPlayed = true;
+            Vec3 impactPos = hitResult.getLocation();
+            level().playSound(null, impactPos.x, impactPos.y, impactPos.z,
+                    ModSounds.LASER_IMPACT.get(), SoundSource.HOSTILE, 1.0f, 1.0f);
+        }
+
         if (!level().isClientSide && !impactExplosionQueued && hitResult instanceof BlockHitResult blockHit) {
             impactExplosionQueued = true;
             BlockPos pos = blockHit.getBlockPos();
             // Queue the explosion through CBC's ProjectileContext so CBC
-            // executes it using its own ImpactExplosion/terrain-damage path.
+            // executes it using its own authoritative impact/terrain path.
             context.queueExplosion(pos, (float) ColorCannonsConfig.IMPACT_EXPLOSION_POWER.get().floatValue());
         }
         return super.onImpact(hitResult, result, context);
