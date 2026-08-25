@@ -1,0 +1,52 @@
+modLoader = "javafml"
+loaderVersion = "${loader_version_range}"
+license = "${mod_license}"
+issueTrackerURL = "https://github.com/ShadowRustOfficial/-CBC-Laser-Cannon-s-and-Weapon-s/issues"
+
+[[mods]]
+modId = "${mod_id}"
+version = "${mod_version}"
+displayName = "${mod_name}"
+authors = "${mod_authors}"
+description = '''${mod_description}'''
+
+# ---- Hard dependencies ----
+# Minecraft version
+[[dependencies.${mod_id}]]
+    modId = "minecraft"
+    type = "required"
+    versionRange = "${minecraft_version_range}"
+    ordering = "NONE"
+    side = "BOTH"
+
+# NeoForge
+[[dependencies.${mod_id}]]
+    modId = "neoforge"
+    type = "required"
+    versionRange = "${neo_version_range}"
+    ordering = "NONE"
+    side = "BOTH"
+
+# Create — required because Create Big Cannons requires it, and we use
+# Create's ValueSettingsBehaviour/kinetic APIs directly in the mount code.
+# Matches CBC 5.11.7's own requirement ([6.0.7,6.1.0) per its mods.toml) --
+# NOT the exact compile-time Maven artifact string (create_version, used
+# only in build.gradle), which includes a build-number suffix that isn't a
+# real runtime mod version.
+[[dependencies.${mod_id}]]
+    modId = "create"
+    type = "required"
+    versionRange = "[6.0.7,6.1.0)"
+    ordering = "AFTER"
+    side = "BOTH"
+
+# Create Big Cannons — hard dependency. Game refuses to load without it
+# (this is enforced automatically by NeoForge's dependency resolution:
+# type = "required" means the game will fail to start with a clear error
+# listing this mod as missing, satisfying the "refuse to load" requirement).
+[[dependencies.${mod_id}]]
+    modId = "createbigcannons"
+    type = "required"
+    versionRange = "[${create_big_cannons_version},)"
+    ordering = "AFTER"
+    side = "BOTH"

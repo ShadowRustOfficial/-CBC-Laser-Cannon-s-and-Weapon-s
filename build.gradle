@@ -1,0 +1,166 @@
+plugins {
+    id 'java-library'
+    id 'eclipse'
+    id 'idea'
+    id 'maven-publish'
+    id 'net.neoforged.gradle.userdev' version '7.1.38'
+}
+
+tasks.named('wrapper', Wrapper).configure {
+    // Keeps `./gradlew wrapper` (if ever re-run) pinned to the same
+    // distribution type instead of drifting to `-all`.
+    distributionType = Wrapper.DistributionType.BIN
+}
+
+version = mod_version
+group = mod_group_id
+
+base {
+    archivesName = mod_id
+}
+
+
+// Fail the build if the generated JAR does not carry the exact lowercase
+// NeoForge mod id declared by gradle.properties. This prevents stale/renamed
+// JARs with the old CBClaserCannons id from being mistaken for this mod.
+tasks.register("validateModJar") {
+    dependsOn tasks.named("jar")
+    doLast {
+        def jarFile = tasks.named("jar").get().archiveFile.get().asFile
+        def expectedId = project.property("mod_id").toString()
+        if (!(expectedId ==~ /[a-z][a-z0-9_]{1,63}/)) {
+            throw new GradleException("Invalid NeoForge mod_id: ${expectedId}")
+        }
+        new java.util.zip.ZipFile(jarFile).withCloseable { zip ->
+            def entry = zip.getEntry("META-INF/neoforge.mods.toml")
+            if (entry == null) {
+                throw new GradleException("Built JAR is missing META-INF/neoforge.mods.toml: ${jarFile.name}")
+            }
+            def toml = zip.getInputStream(entry).getText("UTF-8")
+            def expected = 'modId = "' + expectedId + '"'
+            if (!toml.contains(expected)) {
+                throw new GradleException("Built JAR contains the wrong modId. Expected ${expectedId}; ${jarFile.name} does not contain: ${expected}")
+            }
+        }
+        logger.lifecycle("Validated mod JAR: ${jarFile.name} -> modId=${expectedId}")
+    }
+}
+
+tasks.named("build") {
+    finalizedBy tasks.named("validateModJar")
+}
+
+// Mojang ships Java 21 to end users in 1.21.1, so mods should target Java 21.
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+sourceSets.main.resources {
+    srcDir 'src/generated/resources'
+    exclude("src/generated/**/.cache") // datagen cache files
+}
+
+repositories {
+    maven {
+        // Create's own official Maven -- this is what actually has real
+        // Create jars to compile against, confirmed working from a real
+        // NeoForge 1.21.1 Create addon project.
+        name = 'Create'
+        url = 'https://maven.createmod.net'
+        content {
+            includeGroup 'com.simibubi.create'
+            includeGroupByRegex 'net\\.createmod.*'
+            includeGroupByRegex 'dev\\.engine-room.*'
+        }
+    }
+    maven {
+        // CurseMaven -- fallback only, kept in case a CurseForge-only
+        // artifact is ever needed. Not used for Create or CBC anymore.
+        name = 'CurseMaven'
+        url = 'https://www.cursemaven.com'
+        content { includeGroup 'curse.maven' }
+    }
+    maven {
+        name = 'Registrate'
+        url = 'https://maven.ithundxr.dev/snapshots'
+        content { includeGroup 'com.tterrag.registrate' }
+    }
+    mavenLocal()
+}
+
+dependencies {
+    implementation "net.neoforged:neoforge:${neo_version}"
+
+    // Create ecosystem APIs required by CBC's compiled class hierarchy.
+    implementation("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") {
+        transitive = false
+    }
+    implementation("net.createmod.ponder:ponder-neoforge:${ponder_version}+mc${minecraft_version}")
+    implementation("com.tterrag.registrate:Registrate:${registrate_version}")
+    compileOnly("net.createmod.catnip:Catnip-NeoForge-${minecraft_version}:${catnip_version}")
+    compileOnly("dev.engine-room.flywheel:flywheel-neoforge-api-${minecraft_version}:${flywheel_version}")
+    runtimeOnly("dev.engine-room.flywheel:flywheel-neoforge-${minecraft_version}:${flywheel_version}")
+
+    implementation files('libs/createbigcannons-5_11_7_mc_1_21_1.jar')
+    implementation files('libs/ritchiesprojectilelib-2.1.2-mc.1.21.1-neoforge.jar')
+
+    testImplementation platform("org.junit:junit-bom:5.11.4")
+    testImplementation "org.junit.jupiter:junit-jupiter"
+}
+
+// Replace properties in mods.toml/neoforge.mods.toml
+tasks.withType(ProcessResources).configureEach {
+    var replaceProperties = [
+            minecraft_version      : minecraft_version,
+            minecraft_version_range: minecraft_version_range,
+            neo_version            : neo_version,
+            neo_version_range      : neo_version_range,
+            loader_version_range   : loader_version_range,
+            mod_id                 : mod_id,
+            mod_name               : mod_name,
+            mod_license            : mod_license,
+            mod_version            : mod_version,
+            mod_authors            : mod_authors,
+            mod_description        : mod_description,
+            create_big_cannons_version: create_big_cannons_version,
+    ]
+    inputs.properties replaceProperties
+    filesMatching(['META-INF/neoforge.mods.toml']) {
+        expand replaceProperties + [project: project]
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+def validateModIdentity = tasks.register('validateModIdentity') {
+    doLast {
+        if (!(mod_id ==~ /^[a-z][a-z0-9_]{1,63}$/)) {
+            throw new GradleException("Invalid NeoForge mod_id '${mod_id}'. It must be lowercase and contain only letters, numbers, and underscores.")
+        }
+        if (project.name.toLowerCase() != project.name) {
+            logger.warn("Project directory/name '${project.name}' is not lowercase; artifact identity remains '${mod_id}'.")
+        }
+    }
+}
+
+tasks.named('jar', Jar).configure {
+    dependsOn validateModIdentity
+    archiveBaseName.set(mod_id)
+    manifest {
+        attributes([
+                'Specification-Title'     : mod_id,
+                'Specification-Vendor'    : mod_authors,
+                'Specification-Version'   : '1',
+                'Implementation-Title'    : project.name,
+                'Implementation-Version'  : project.jar.archiveVersion,
+                'Implementation-Vendor'   : mod_authors,
+        ])
+    }
+}
+
+idea {
+    module {
+        downloadSources = true
+        downloadJavadoc = true
+    }
+}

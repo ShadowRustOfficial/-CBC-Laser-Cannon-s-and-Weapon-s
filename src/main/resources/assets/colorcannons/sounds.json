@@ -1,0 +1,24 @@
+{
+  "blue_autocannon_fire": {
+    "category": "hostile",
+    "subtitle": "subtitles.colorcannons.blue_autocannon_fire",
+    "sounds": [
+      {
+        "name": "colorcannons:blue_autocannon_fire",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "red_autocannon_fire": {
+    "category": "hostile",
+    "subtitle": "subtitles.colorcannons.red_autocannon_fire",
+    "sounds": [
+      {
+        "name": "colorcannons:red_autocannon_fire",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  }
+}

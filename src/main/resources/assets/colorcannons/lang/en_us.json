@@ -1,0 +1,13 @@
+{
+  "block.colorcannons.laser_autocannon_breech": "Laser Autocannon Breech",
+  "block.colorcannons.fe_fixed_cannon_mount": "FE Fixed Cannon Mount",
+  "item.colorcannons.laser_autocannon_breech": "Laser Autocannon Breech",
+  "item.colorcannons.fe_fixed_cannon_mount": "FE Fixed Cannon Mount",
+  "item.colorcannons.blue_laser_round": "Blue Laser Round",
+  "item.colorcannons.red_laser_round": "Red Laser Round",
+  "subtitles.colorcannons.blue_autocannon_fire": "Laser Autocannon fires (Blue)",
+  "subtitles.colorcannons.red_autocannon_fire": "Laser Autocannon fires (Red)",
+  "itemGroup.colorcannons.main": "Laser Autocannons",
+  "colorcannons.fe_fixed_cannon_mount.color_mode": "Color Mode",
+  "config.colorcannons.title": "Color Autocannons Config"
+}
