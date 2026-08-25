@@ -20,5 +20,16 @@
         "attenuation_distance": 64
       }
     ]
+  },
+  "laser_impact": {
+    "category": "hostile",
+    "subtitle": "subtitles.colorcannons.laser_impact",
+    "sounds": [
+      {
+        "name": "colorcannons:laser_impact",
+        "stream": false,
+        "attenuation_distance": 48
+      }
+    ]
   }
 }
