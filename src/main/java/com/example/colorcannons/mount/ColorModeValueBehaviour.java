@@ -2,12 +2,11 @@ package com.example.colorcannons.mount;
 
 import com.example.colorcannons.registry.ModColorModes;
 import com.google.common.collect.ImmutableList;
+import com.simibubi.create.content.kinetics.crank.ValveHandleBlockEntity;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BehaviourType;
-import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.CenteredSideValueBoxTransform;
 import com.simibubi.create.foundation.blockEntity.behaviour.ValueBoxTransform;
-import com.simibubi.create.foundation.blockEntity.behaviour.ValueSettingsBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.ValueSettingsBoard;
 import com.simibubi.create.foundation.blockEntity.behaviour.ValueSettingsFormatter;
 import net.minecraft.ChatFormatting;
@@ -24,35 +23,25 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Discrete two-state colour selector for the FE fixed mount.
- *
- * This deliberately implements Create's ValueSettingsBehaviour directly
- * instead of inheriting ValveHandleScrollValueBehaviour. The latter is a
- * scroll-value control intended for continuously adjustable values such as
- * CBC pitch/yaw and can compete for scroll input with the neighbouring mount
- * controls. Here the colour is a state, not a slider: row 0 = BLUE and row 1
- * = RED, with the numeric value always zero.
+ * The colour selector deliberately uses the same Create valve-handle scroll
+ * behaviour as the mechanical/swivel bearing controls. This makes it a real
+ * Create value control instead of a separate click-only board, so scrolling
+ * the colour control changes only the colour state.
  */
-public class ColorModeValueBehaviour extends BlockEntityBehaviour implements ValueSettingsBehaviour {
-
+public class ColorModeValueBehaviour extends ValveHandleBlockEntity.ValveHandleScrollValueBehaviour {
     public static final BehaviourType<ColorModeValueBehaviour> TYPE = new BehaviourType<>();
-
     private final ValueBoxTransform slotPositioning;
-    private int row;
 
     public ColorModeValueBehaviour(SmartBlockEntity be) {
         super(be);
-        this.row = 0;
-        this.slotPositioning = new ColorModeValueBox();
+        setLabel(Component.translatable("colorcannons.fe_fixed_cannon_mount.color_mode"));
+        slotPositioning = new ColorModeValueBox();
+        between(0, 1);
+        withFormatter(v -> ModColorModes.byOrdinalSafe(v).name());
     }
 
     public ModColorModes getColorMode() {
-        return row == 1 ? ModColorModes.RED : ModColorModes.BLUE;
-    }
-
-    @Override
-    public boolean isActive() {
-        return true;
+        return ModColorModes.byOrdinalSafe(getValue());
     }
 
     @Override
@@ -64,26 +53,19 @@ public class ColorModeValueBehaviour extends BlockEntityBehaviour implements Val
         return slotPositioning.testHit(level, pos, state, localHit);
     }
 
-    public MutableComponent formatValue(ValueSettingsBehaviour.ValueSettings settings) {
-        return settings.row() == 1
-                ? Component.literal("RED").withStyle(ChatFormatting.RED)
-                : Component.literal("BLUE").withStyle(ChatFormatting.BLUE);
+    @Override
+    public MutableComponent formatValue(ValueSettings settings) {
+        ModColorModes mode = ModColorModes.byOrdinalSafe(settings.value());
+        return Component.literal(mode.name()).withStyle(mode == ModColorModes.RED ? ChatFormatting.RED : ChatFormatting.BLUE);
     }
 
     @Override
-    public ValueSettingsBehaviour.ValueSettings getValueSettings() {
-        return new ValueSettingsBehaviour.ValueSettings(row, 0);
-    }
-
-    @Override
-    public void setValueSettings(Player player, ValueSettingsBehaviour.ValueSettings settings, boolean ctrlDown) {
-        int newRow = settings.row() == 1 ? 1 : 0;
-        if (newRow == row)
-            return;
-        row = newRow;
+    public void setValueSettings(Player player, ValueSettings valueSetting, boolean ctrlHeld) {
+        if (!valueSetting.equals(getValueSettings()))
+            playFeedbackSound(this);
+        setValue(valueSetting.value() == 1 ? 1 : 0);
         blockEntity.setChanged();
         blockEntity.sendData();
-        playFeedbackSound(this);
     }
 
     @Override
@@ -91,12 +73,7 @@ public class ColorModeValueBehaviour extends BlockEntityBehaviour implements Val
         ImmutableList<Component> rows = ImmutableList.of(
                 Component.literal("BLUE").withStyle(ChatFormatting.BLUE),
                 Component.literal("RED").withStyle(ChatFormatting.RED));
-        return new ValueSettingsBoard(
-                Component.literal("Color Mode"),
-                1,
-                1,
-                rows,
-                new ValueSettingsFormatter(this::formatValue));
+        return new ValueSettingsBoard(label, 1, 1, rows, new ValueSettingsFormatter(this::formatValue));
     }
 
     @Override
@@ -111,12 +88,12 @@ public class ColorModeValueBehaviour extends BlockEntityBehaviour implements Val
 
     @Override
     public void write(CompoundTag nbt, HolderLookup.Provider registries, boolean clientPacket) {
-        nbt.putInt("ColorMode", row);
+        nbt.putInt("ColorMode", ModColorModes.byOrdinalSafe(getValue()).ordinal());
     }
 
     @Override
     public void read(CompoundTag nbt, HolderLookup.Provider registries, boolean clientPacket) {
-        row = nbt.getInt("ColorMode") == 1 ? 1 : 0;
+        setValue(nbt.contains("ColorMode") ? nbt.getInt("ColorMode") : ModColorModes.BLUE.ordinal());
     }
 
     private static class ColorModeValueBox extends CenteredSideValueBoxTransform {
@@ -126,10 +103,7 @@ public class ColorModeValueBehaviour extends BlockEntityBehaviour implements Val
 
         @Override
         protected Vec3 getSouthLocation() {
-            // Exactly centred on the mount face, between CBC's pitch (x=4)
-            // and yaw (x=12) controls. The dedicated behaviour above means
-            // it no longer participates in their scroll-value handling.
-            return new Vec3(0.5, 0.5, 15.5 / 16.0);
+            return new Vec3(8.0 / 16.0, 8.0 / 16.0, 15.5 / 16.0);
         }
     }
 }
