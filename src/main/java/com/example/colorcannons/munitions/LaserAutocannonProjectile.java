@@ -16,35 +16,17 @@ import rbasamoyai.createbigcannons.munitions.autocannon.ap_round.APAutocannonPro
 import rbasamoyai.createbigcannons.munitions.config.components.BallisticPropertiesComponent;
 import rbasamoyai.createbigcannons.munitions.config.components.EntityDamagePropertiesComponent;
 
-/**
- * Authoritative laser projectile. CBC remains responsible for the projectile
- * collision, penetration and damage pipeline; this class adds the laser's
- * server-side impact explosion and impact audio exactly once.
- */
+/** Authoritative laser projectile with server-side impact effects. */
 public class LaserAutocannonProjectile extends APAutocannonProjectile {
-
     private boolean impactExplosionQueued;
     private boolean impactSoundPlayed;
-    /** World-space point where CBC spawned the projectile (the cannon muzzle). */
     private Vec3 muzzleOrigin;
 
     private static final EntityDamagePropertiesComponent DAMAGE =
-            new EntityDamagePropertiesComponent(
-                    24.0f,
-                    false,
-                    true,
-                    true,
-                    0.6f);
+            new EntityDamagePropertiesComponent(12.0f, false, true, true, 0.6f);
 
     private static final BallisticPropertiesComponent BALLISTICS =
-            new BallisticPropertiesComponent(
-                    0.0,
-                    0.0,
-                    false,
-                    2.0f,
-                    24.0f,
-                    24.0f,
-                    0.0f);
+            new BallisticPropertiesComponent(0.0, 0.0, false, 2.0f, 12.0f, 12.0f, 0.0f);
 
     public LaserAutocannonProjectile(EntityType<? extends LaserAutocannonProjectile> type, Level level) {
         super(type, level);
@@ -67,9 +49,7 @@ public class LaserAutocannonProjectile extends APAutocannonProjectile {
 
     @Override
     public void tick() {
-        if (muzzleOrigin == null) {
-            muzzleOrigin = position();
-        }
+        if (muzzleOrigin == null) muzzleOrigin = position();
         super.tick();
     }
 
@@ -96,12 +76,9 @@ public class LaserAutocannonProjectile extends APAutocannonProjectile {
             level().playSound(null, impactPos.x, impactPos.y, impactPos.z,
                     ModSounds.LASER_IMPACT.get(), SoundSource.HOSTILE, 1.0f, 1.0f);
         }
-
         if (!level().isClientSide && !impactExplosionQueued && hitResult instanceof BlockHitResult blockHit) {
             impactExplosionQueued = true;
             BlockPos pos = blockHit.getBlockPos();
-            // Queue the explosion through CBC's ProjectileContext so CBC
-            // executes it using its own authoritative impact/terrain path.
             context.queueExplosion(pos, (float) ColorCannonsConfig.IMPACT_EXPLOSION_POWER.get().floatValue());
         }
         return super.onImpact(hitResult, result, context);
