@@ -2,7 +2,6 @@ package com.example.colorcannons.mount;
 
 import com.example.colorcannons.registry.ModColorModes;
 import com.google.common.collect.ImmutableList;
-import com.simibubi.create.content.kinetics.crank.ValveHandleBlockEntity;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BehaviourType;
 import com.simibubi.create.foundation.blockEntity.behaviour.CenteredSideValueBoxTransform;
@@ -22,13 +21,8 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 
-/**
- * The colour selector deliberately uses the same Create valve-handle scroll
- * behaviour as the mechanical/swivel bearing controls. This makes it a real
- * Create value control instead of a separate click-only board, so scrolling
- * the colour control changes only the colour state.
- */
-public class ColorModeValueBehaviour extends ValveHandleBlockEntity.ValveHandleScrollValueBehaviour {
+/** Create value control for the mount's colour selector. */
+public class ColorModeValueBehaviour extends com.simibubi.create.foundation.blockEntity.behaviour.scrollValue.ScrollValueBehaviour {
     public static final BehaviourType<ColorModeValueBehaviour> TYPE = new BehaviourType<>();
     private final ValueBoxTransform slotPositioning;
 
@@ -40,9 +34,7 @@ public class ColorModeValueBehaviour extends ValveHandleBlockEntity.ValveHandleS
         withFormatter(v -> ModColorModes.byOrdinalSafe(v).name());
     }
 
-    public ModColorModes getColorMode() {
-        return ModColorModes.byOrdinalSafe(getValue());
-    }
+    public ModColorModes getColorMode() { return ModColorModes.byOrdinalSafe(getValue()); }
 
     @Override
     public boolean testHit(Vec3 hit) {
@@ -61,8 +53,7 @@ public class ColorModeValueBehaviour extends ValveHandleBlockEntity.ValveHandleS
 
     @Override
     public void setValueSettings(Player player, ValueSettings valueSetting, boolean ctrlHeld) {
-        if (!valueSetting.equals(getValueSettings()))
-            playFeedbackSound(this);
+        if (!valueSetting.equals(getValueSettings())) playFeedbackSound(this);
         setValue(valueSetting.value() == 1 ? 1 : 0);
         blockEntity.setChanged();
         blockEntity.sendData();
@@ -77,14 +68,9 @@ public class ColorModeValueBehaviour extends ValveHandleBlockEntity.ValveHandleS
     }
 
     @Override
-    public ValueBoxTransform getSlotPositioning() {
-        return slotPositioning;
-    }
-
+    public ValueBoxTransform getSlotPositioning() { return slotPositioning; }
     @Override
-    public BehaviourType<?> getType() {
-        return TYPE;
-    }
+    public BehaviourType<?> getType() { return TYPE; }
 
     @Override
     public void write(CompoundTag nbt, HolderLookup.Provider registries, boolean clientPacket) {
@@ -100,10 +86,9 @@ public class ColorModeValueBehaviour extends ValveHandleBlockEntity.ValveHandleS
         ColorModeValueBox() {
             super((state, dir) -> state.getValue(BlockStateProperties.FACING) != dir);
         }
-
         @Override
         protected Vec3 getSouthLocation() {
-            return new Vec3(8.0 / 16.0, 8.0 / 16.0, 15.5 / 16.0);
+            return new Vec3(8.0 / 16.0, 8.0 / 16.0, 14.0 / 16.0);
         }
     }
 }
