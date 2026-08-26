@@ -1,5 +1,6 @@
 package com.example.colorcannons.breech;
 
+import com.example.colorcannons.config.ColorCannonsConfig;
 import com.example.colorcannons.mount.FeFixedCannonMountBlockEntity;
 import com.example.colorcannons.registry.ModColorModes;
 import com.example.colorcannons.registry.ModBlockEntities;
@@ -14,19 +15,12 @@ import rbasamoyai.createbigcannons.cannon_control.ControlPitchContraption;
 import rbasamoyai.createbigcannons.cannon_control.contraption.PitchOrientedContraptionEntity;
 import rbasamoyai.createbigcannons.cannons.autocannon.breech.AutocannonBreechBlockEntity;
 
-/**
- * FE-powered laser breech using CBC's normal autocannon firing pipeline.
- *
- * The laser deliberately does NOT call super.handleFiring(): CBC's base hook
- * emits its shared autocannon firing sound. Omitting that hook here scopes the
- * suppression to this breech only; no global createbigcannons sound override
- * is installed, so ordinary CBC autocannons retain their normal sound.
- */
+/** FE-powered laser breech using CBC's normal projectile pipeline. */
 public class LaserAutocannonBreechBlockEntity extends AutocannonBreechBlockEntity {
-
     private FeFixedCannonMountBlockEntity cachedMount;
     private Level cachedLevel;
     private Vec3 cachedGlobalPos;
+    private long lastLaserShotTick = Long.MIN_VALUE;
 
     public LaserAutocannonBreechBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.LASER_BREECH.get(), pos, state);
@@ -35,26 +29,33 @@ public class LaserAutocannonBreechBlockEntity extends AutocannonBreechBlockEntit
     @Override
     public void tickFromContraption(Level level, PitchOrientedContraptionEntity poce, BlockPos localPos) {
         super.tickFromContraption(level, poce, localPos);
-        this.cachedLevel = level;
-        this.cachedGlobalPos = poce.toGlobalVector(Vec3.atCenterOf(localPos), 0.0f);
+        cachedLevel = level;
+        cachedGlobalPos = poce.toGlobalVector(Vec3.atCenterOf(localPos), 0.0f);
         ControlPitchContraption controller = poce.getController();
-        this.cachedMount = controller instanceof FeFixedCannonMountBlockEntity mount ? mount : null;
+        cachedMount = controller instanceof FeFixedCannonMountBlockEntity mount ? mount : null;
     }
 
     private boolean hasChargedMount() {
         return cachedMount != null && cachedMount.hasEnoughFeForShot();
     }
 
+    private boolean intervalReady() {
+        if (cachedLevel == null || cachedLevel.isClientSide)
+            return true;
+        long now = cachedLevel.getGameTime();
+        return lastLaserShotTick == Long.MIN_VALUE
+                || now - lastLaserShotTick >= ColorCannonsConfig.FIRE_INTERVAL_TICKS.get();
+    }
+
     @Override
     public boolean canFire() {
-        return super.canFire() && hasChargedMount();
+        return super.canFire() && hasChargedMount() && intervalReady();
     }
 
     @Override
     public ItemStack extractNextInput() {
-        if (!hasChargedMount()) {
+        if (!hasChargedMount() || !intervalReady())
             return ItemStack.EMPTY;
-        }
         ModColorModes mode = cachedMount.getColorMode();
         cachedMount.consumeFeForShot();
         return new ItemStack(com.example.colorcannons.registry.ModItems.laserRoundFor(mode));
@@ -62,12 +63,13 @@ public class LaserAutocannonBreechBlockEntity extends AutocannonBreechBlockEntit
 
     @Override
     public void handleFiring() {
-        // Intentionally do not call super.handleFiring(). The parent hook is
-        // the CBC shared autocannon sound path. Suppression here is scoped to
-        // this laser breech and leaves every stock CBC autocannon untouched.
-        if (cachedLevel != null && cachedGlobalPos != null && !cachedLevel.isClientSide && cachedMount != null) {
-            cachedLevel.playSound(null, cachedGlobalPos.x, cachedGlobalPos.y, cachedGlobalPos.z,
-                    ModSounds.forMode(cachedMount.getColorMode()), SoundSource.BLOCKS, 8.0f, 1.0f);
-        }
+        // Never call super.handleFiring(): that is the CBC shared autocannon
+        // sound hook. Keeping this override local leaves ordinary CBC cannons
+        // completely untouched.
+        if (cachedLevel == null || cachedLevel.isClientSide || cachedMount == null)
+            return;
+        lastLaserShotTick = cachedLevel.getGameTime();
+        cachedLevel.playSound(null, cachedGlobalPos.x, cachedGlobalPos.y, cachedGlobalPos.z,
+                ModSounds.forMode(cachedMount.getColorMode()), SoundSource.BLOCKS, 8.0f, 1.0f);
     }
 }
