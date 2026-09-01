@@ -2,8 +2,8 @@ package com.example.colorcannons.breech;
 
 import com.example.colorcannons.config.ColorCannonsConfig;
 import com.example.colorcannons.mount.FeFixedCannonMountBlockEntity;
-import com.example.colorcannons.registry.ModColorModes;
 import com.example.colorcannons.registry.ModBlockEntities;
+import com.example.colorcannons.registry.ModColorModes;
 import com.example.colorcannons.registry.ModSounds;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
@@ -19,7 +19,7 @@ import rbasamoyai.createbigcannons.cannon_control.ControlPitchContraption;
 import rbasamoyai.createbigcannons.cannon_control.contraption.PitchOrientedContraptionEntity;
 import rbasamoyai.createbigcannons.cannons.autocannon.breech.AutocannonBreechBlockEntity;
 
-/** FE-powered laser breech using CBC's normal projectile pipeline. */
+/** FE-powered laser breech using CBC's normal projectile/firing lifecycle. */
 @EventBusSubscriber(modid = com.example.colorcannons.ColorCannonsMod.MOD_ID)
 public class LaserAutocannonBreechBlockEntity extends AutocannonBreechBlockEntity {
     private static final ResourceLocation CBC_AUTOCANNON_FIRE =
@@ -45,20 +45,27 @@ public class LaserAutocannonBreechBlockEntity extends AutocannonBreechBlockEntit
         cachedMount = controller instanceof FeFixedCannonMountBlockEntity mount ? mount : null;
     }
 
-    private boolean hasChargedMount() { return cachedMount != null && cachedMount.hasEnoughFeForShot(); }
+    private boolean hasChargedMount() {
+        return cachedMount != null && cachedMount.hasEnoughFeForShot();
+    }
 
     private boolean intervalReady() {
-        if (cachedLevel == null || cachedLevel.isClientSide) return true;
+        if (cachedLevel == null || cachedLevel.isClientSide)
+            return true;
         long now = cachedLevel.getGameTime();
-        return lastLaserShotTick == Long.MIN_VALUE || now - lastLaserShotTick >= ColorCannonsConfig.FIRE_INTERVAL_TICKS.get();
+        return lastLaserShotTick == Long.MIN_VALUE
+                || now - lastLaserShotTick >= ColorCannonsConfig.FIRE_INTERVAL_TICKS.get();
     }
 
     @Override
-    public boolean canFire() { return super.canFire() && hasChargedMount() && intervalReady(); }
+    public boolean canFire() {
+        return super.canFire() && hasChargedMount() && intervalReady();
+    }
 
     @Override
     public ItemStack extractNextInput() {
-        if (!hasChargedMount() || !intervalReady()) return ItemStack.EMPTY;
+        if (!hasChargedMount() || !intervalReady())
+            return ItemStack.EMPTY;
         ModColorModes mode = cachedMount.getColorMode();
         cachedMount.consumeFeForShot();
         return new ItemStack(com.example.colorcannons.registry.ModItems.laserRoundFor(mode));
@@ -66,12 +73,18 @@ public class LaserAutocannonBreechBlockEntity extends AutocannonBreechBlockEntit
 
     @Override
     public void handleFiring() {
-        // Keep CBC's internal cooldown/animation lifecycle. Only its shared
-        // fire_autocannon sound is suppressed at this laser's muzzle below.
+        // Mark the muzzle BEFORE entering CBC's firing routine because CBC may
+        // emit fire_autocannon synchronously from super.handleFiring().
+        if (cachedLevel != null && !cachedLevel.isClientSide && cachedGlobalPos != null)
+            markLaserFiringSound(cachedLevel, cachedGlobalPos);
+
+        // Keep CBC's normal cooldown, animation and projectile lifecycle.
         super.handleFiring();
-        if (cachedLevel == null || cachedLevel.isClientSide || cachedMount == null || cachedGlobalPos == null) return;
+
+        if (cachedLevel == null || cachedLevel.isClientSide || cachedMount == null || cachedGlobalPos == null)
+            return;
+
         lastLaserShotTick = cachedLevel.getGameTime();
-        markLaserFiringSound(cachedLevel, cachedGlobalPos);
         cachedLevel.playSound(null, cachedGlobalPos.x, cachedGlobalPos.y, cachedGlobalPos.z,
                 ModSounds.forMode(cachedMount.getColorMode()), SoundSource.BLOCKS, 8.0f, 1.0f);
     }
@@ -83,16 +96,25 @@ public class LaserAutocannonBreechBlockEntity extends AutocannonBreechBlockEntit
 
     @SubscribeEvent
     public static void onLevelSound(PlayLevelSoundEvent.AtPosition event) {
-        if (!(event.getLevel() instanceof Level level) || level.isClientSide()) return;
-        if (event.getSound() == null || !event.getSound().value().getLocation().equals(CBC_AUTOCANNON_FIRE)) return;
+        if (!(event.getLevel() instanceof Level level) || level.isClientSide())
+            return;
+        if (event.getSound() == null
+                || !event.getSound().value().getLocation().equals(CBC_AUTOCANNON_FIRE))
+            return;
+
         java.util.Map<Vec3, Long> markers = LASER_SOUND_MARKERS.get(level);
-        if (markers == null || markers.isEmpty()) return;
+        if (markers == null || markers.isEmpty())
+            return;
+
         long now = level.getGameTime();
         java.util.Iterator<java.util.Map.Entry<Vec3, Long>> iterator = markers.entrySet().iterator();
         while (iterator.hasNext()) {
             java.util.Map.Entry<Vec3, Long> entry = iterator.next();
-            if (entry.getValue() < now) { iterator.remove(); continue; }
-            if (entry.getKey().distanceToSqr(event.getPosition()) <= 1.0) {
+            if (entry.getValue() < now) {
+                iterator.remove();
+                continue;
+            }
+            if (entry.getKey().distanceToSqr(event.getPosition()) <= 4.0) {
                 event.setCanceled(true);
                 iterator.remove();
                 return;
